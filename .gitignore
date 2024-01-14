@@ -6,3 +6,6 @@ __pycache__
 lightning_logs/
 *.pkl
 *.h5
+
+# added by ccj on 24/01/14
+logs/

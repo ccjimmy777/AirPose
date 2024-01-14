@@ -14,7 +14,8 @@ else:
     gpu = 0
 
 import os, sys, time
-os.environ["PYOPENGL_PLATFORM"] = 'egl'
+# os.environ["PYOPENGL_PLATFORM"] = 'egl'
+os.environ["PYOPENGL_PLATFORM"] = 'osmesa'
 # os.environ['EGL_DEVICE_ID'] = os.environ['GPU_DEVICE_ORDINAL'].split(',')[0]
 
 # sets seeds for numpy, torch, etc...
@@ -56,6 +57,7 @@ def main(args):
     trainer = Trainer.from_argparse_args(args,
                                             default_root_dir=exp_dir,
                                             gpus = gpu,
+                                            max_epochs=6,  # debug
                                             resume_from_checkpoint=last_ckpt,
                                             checkpoint_callback=ckpt_callback,
                                             callbacks = [ckpt_callback],

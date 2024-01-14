@@ -60,7 +60,7 @@ device = "cuda"
 # VERTEX_TEXTURE_FILE = 'data/vertex_texture.npy'
 # STATIC_FITS_DIR = 'data/static_fits'
 
-LOCAL_DATA_DIR_PATH = "/is/ps3/nsaini/projects/copenet_hmr/src/copenet_hmr/data"
+LOCAL_DATA_DIR_PATH = "/home/jimmy/projects/AirPose/copenet/src/copenet/data"
 
 SMPL_MEAN_PARAMS = join(LOCAL_DATA_DIR_PATH,'smpl_mean_params.npz')
 SMPL_MODEL_DIR = join(LOCAL_DATA_DIR_PATH,'smpl')

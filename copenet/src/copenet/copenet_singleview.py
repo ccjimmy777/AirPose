@@ -128,6 +128,36 @@ class copenet_singleview(pl.LightningModule):
 
 
     def fwd_pass_and_loss(self,input_batch,is_val=False,is_test=False):
+        """
+        Perform a forward pass through the model and calculate the loss.
+
+        Args:
+            self (object): The instance of the class.
+            input_batch (dict): The input batch containing the following keys:
+                - 'im0' (torch.Tensor): The input image.
+                - 'smpltrans_rel0' (torch.Tensor): The SMPL trans parameters.
+                - 'bb0' (torch.Tensor): The bounding box.
+                - 'intr0' (torch.Tensor): The intrinsic parameters of the camera.
+            is_val (bool, optional): Whether the function is being called during validation. Defaults to False.
+            is_test (bool, optional): Whether the function is being called during testing. Defaults to False.
+
+        Returns:
+            tuple: A tuple containing the following elements:
+                - output (dict): A dictionary containing the following keys:
+                    - 'pred_vertices_cam' (torch.Tensor): The predicted vertices in camera coordinates.
+                    - 'pred_j3d_cam' (torch.Tensor): The predicted 3D joints in camera coordinates.
+                    - 'pred_vertices_cam_in' (torch.Tensor): The predicted vertices in camera coordinates for the input image.
+                    - 'pred_angles' (torch.Tensor): The predicted angles.
+                    - 'pred_betas' (torch.Tensor): The predicted betas.
+                    - 'pred_smpltrans' (torch.Tensor): The predicted SMPL trans parameters.
+                    - 'in_smpltrans' (torch.Tensor): The input SMPL trans parameters.
+                    - 'gt_angles' (torch.Tensor): The ground truth angles.
+                    - 'gt_smpltrans' (torch.Tensor): The ground truth SMPL trans parameters.
+                    - 'smplorient_rel0' (torch.Tensor): The SMPL orientation parameters.
+                    - 'smplpose_rotmat' (torch.Tensor): The SMPL pose rotation matrix.
+                - losses (dict): A dictionary containing the loss values.
+                - loss (torch.Tensor): The total loss.
+        """
         
         with torch.no_grad():
             # Get data from the batch
@@ -252,8 +282,18 @@ class copenet_singleview(pl.LightningModule):
 
         return output, losses, loss
 
+
     def training_step(self, batch, batch_idx):
-        
+        """
+        Performs a single training step on the given batch of data.
+
+        Args:
+            batch: The input batch of data.
+            batch_idx: The index of the current batch.
+
+        Returns:
+            A dictionary containing the loss value.
+        """
         
         output, losses, loss = self.fwd_pass_and_loss(batch,is_val=False, is_test=False)
 
@@ -463,8 +503,8 @@ class copenet_singleview(pl.LightningModule):
         train = parser.add_argument_group('Training Options')
         train.add_argument('--datapath', type=str, default=None, help='Path to the dataset')
         train.add_argument('--model', type=str, default=None, required=True, help='model type')
-        train.add_argument('--copenet_home', type=str, required=True, help='copenet repo home')
-        train.add_argument('--log_dir', default='/is/cluster/nsaini/copenet_logs', help='Directory to store logs')
+        train.add_argument('--copenet_home', default='/home/jimmy/projects/AirPose/copenet', type=str, required=True, help='copenet repo home')
+        train.add_argument('--log_dir', default='/home/jimmy/projects/AirPose/logs', help='Directory to store logs')
         train.add_argument('--testdata', type=str, default="aerialpeople", help='test dataset')
         train.add_argument("--lr", type=float, default=5e-5, help="Learning rate")
         train.add_argument('--batch_size', type=int, default=30, help='Batch size')

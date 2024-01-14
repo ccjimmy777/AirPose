@@ -542,7 +542,7 @@ class muhmr(pl.LightningModule):
         train = parser.add_argument_group('Training Options')
         train.add_argument('--datapath', type=str, default="/home/nsaini/Datasets/AerialPeople/agora_copenet_uniform_new_cropped/", help='Path to the dataset')
         train.add_argument('--model', type=str, default=None, required=True, help='model type')
-        train.add_argument('--copenet_home', type=str, required=True, help='copenet repo home')
+        train.add_argument('--copenet_home', default='/home/jimmy/projects/AirPose/copenet', type=str, required=True, help='copenet repo home')
         train.add_argument('--log_dir', default='/is/ps3/nsaini/projects/copenet/airpose_logs', help='Directory to store logs')
         train.add_argument('--testdata', type=str, default="aerialpeople", help='test dataset')
         train.add_argument("--lr", type=float, default=5e-5, help="Learning rate")
