@@ -1,9 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # Preprocess dataset for Synthetic data training
 import pickle as pkl
 import sys
 import os
 
-data_root = sys.argv[1]
+# data_root = sys.argv[1]
+data_root = "/mnt/d/data/airpose/copenet_synthetic"  # for local use
 
 # 从 pickle 文件加载训练数据集
 train_ds = pkl.load(open(os.path.join(data_root,"dataset","train_pkls.pkl"),"rb"))
