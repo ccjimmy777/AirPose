@@ -9,3 +9,4 @@ lightning_logs/
 
 # added by ccj on 24/01/14
 logs/
+!copenet/src/copenet/data/smplx/MANO_SMPLX_vertex_ids.pkl
