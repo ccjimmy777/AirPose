@@ -640,7 +640,7 @@ class copenet_twoview(pl.LightningModule):
 
         gen = parser.add_argument_group('General')
         gen.add_argument('--time_to_run', type=int, default=np.inf, help='Total time to run in seconds. Used for training in environments with timing constraints')
-        gen.add_argument('--num_workers', type=int, default=8, help='Number of processes used for data loading')  # 30
+        gen.add_argument('--num_workers', type=int, default=30, help='Number of processes used for data loading')  # 30
         pin = gen.add_mutually_exclusive_group()
         pin.add_argument('--pin_memory', dest='pin_memory', action='store_true')
         pin.add_argument('--no_pin_memory', dest='pin_memory', action='store_false')
