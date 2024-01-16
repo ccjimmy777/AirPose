@@ -3,8 +3,8 @@ import pickle as pkl
 import sys
 import os
 
-# data_root = sys.argv[1]
-data_root = "/mnt/data"  # for aliyun use
+data_root = sys.argv[1]
+# data_root = "/mnt/data"  # for aliyun use
 
 # 从 pickle 文件加载训练数据集
 train_ds = pkl.load(open(os.path.join(data_root,"dataset","train_pkls.pkl"),"rb"))
@@ -24,4 +24,4 @@ test_ds = [os.path.join(data_root,*x.split("/")[-4:]) for x in test_ds]
 pkl.dump(train_ds,open(os.path.join(data_root,"dataset","train_pkls.pkl"),"wb"))
 pkl.dump(test_ds,open(os.path.join(data_root,"dataset","test_pkls.pkl"),"wb"))
 
-print("done for aliyun use!!!")
+print("done!!!")
