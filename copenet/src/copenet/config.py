@@ -60,7 +60,8 @@ device = "cuda"
 # VERTEX_TEXTURE_FILE = 'data/vertex_texture.npy'
 # STATIC_FITS_DIR = 'data/static_fits'
 
-LOCAL_DATA_DIR_PATH = "/home/jimmy/projects/AirPose/copenet/src/copenet/data"
+# LOCAL_DATA_DIR_PATH = "/home/jimmy/projects/AirPose/copenet/src/copenet/data"
+LOCAL_DATA_DIR_PATH = "/root/code/AirPose/copenet/src/copenet/data"  # for aliyun use
 
 SMPL_MEAN_PARAMS = join(LOCAL_DATA_DIR_PATH,'smpl_mean_params.npz')
 SMPL_MODEL_DIR = join(LOCAL_DATA_DIR_PATH,'smpl')
