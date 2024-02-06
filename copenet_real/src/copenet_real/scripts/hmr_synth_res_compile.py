@@ -17,7 +17,7 @@ from copenet.hmr import hmr
 from copenet.copenet_singleview import copenet_singleview
 from copenet_real.dsets import aerialpeople
 
-sys.argv = ["", "copenet_singleview", "/mnt/d/data/copenet_synthetic/copenet_singleview_ckpt/", "/mnt/d/data/copenet_synthetic", "/home/jimmy/projects/AirPose/copenet/src/copenet/data/smplx/models/smplx/"]
+sys.argv = ["", "copenet_singleview", "/mnt/d/data/airpose/copenet_synthetic/copenet_singleview_ckpt/", "/mnt/d/data/airpose/copenet_synthetic", "/home/jimmy/projects/AirPose/copenet/src/copenet/data/smplx/models/smplx/"]
 
 modeltype = sys.argv[1]
 fname = sys.argv[2]
