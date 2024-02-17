@@ -124,6 +124,8 @@ class copenet_singleview(pl.LightningModule):
                   'loss_regr_pose': loss_regr_pose.detach().item(),
                   'loss_regul_betas': loss_regul_betas.detach().item()}
 
+        print(losses)
+
         return loss, losses
 
 
