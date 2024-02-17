@@ -86,7 +86,7 @@ class copenet(nn.Module):
         mean_params = np.load(smpl_mean_params)
         init_pose = torch.from_numpy(mean_params['pose'][:]).unsqueeze(0)
         init_shape = torch.from_numpy(mean_params['shape'][:].astype('float32')).unsqueeze(0)
-        init_position = torch.from_numpy(np.array([0.0,0.0,10.0/0.05])).unsqueeze(0).float()
+        init_position = torch.from_numpy(np.array([0.0,0.0,10.0*0.05])).unsqueeze(0).float()
         self.register_buffer('init_pose', init_pose)
         self.register_buffer('init_shape', init_shape)
         self.register_buffer('init_position', init_position)
