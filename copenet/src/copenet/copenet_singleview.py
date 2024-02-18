@@ -103,6 +103,8 @@ class copenet_singleview(pl.LightningModule):
         loss_regr_pose =  loss_rotmat.mean()
         
         loss_regul_betas = torch.mul(pred_betas,pred_betas).mean()
+
+        loss_depth_aware = self.get_depth_aware_loss(input_batch, pred_smpltrans, pred_rotmat, pred_output_cam)
         
         # Compute total loss
         loss = self.hparams.trans_loss_weight * loss_regr_trans + \
@@ -111,7 +113,8 @@ class copenet_singleview(pl.LightningModule):
                 self.hparams.shape_loss_weight * loss_regr_shape + \
                 self.hparams.rootrot_loss_weight * loss_rootrot + \
                 self.hparams.pose_loss_weight * loss_regr_pose + \
-                self.hparams.beta_loss_weight * loss_regul_betas
+                self.hparams.beta_loss_weight * loss_regul_betas + \
+                1.0 * loss_depth_aware
 
         loss *= 60
 
@@ -122,7 +125,8 @@ class copenet_singleview(pl.LightningModule):
                   'loss_regr_shape': loss_regr_shape.detach().item(),
                   'loss_rootrot': loss_rootrot.detach().item(),
                   'loss_regr_pose': loss_regr_pose.detach().item(),
-                  'loss_regul_betas': loss_regul_betas.detach().item()}
+                  'loss_regul_betas': loss_regul_betas.detach().item(),
+                  'loss_depth_aware': loss_depth_aware.detach().item()}
 
         print(losses)
 
@@ -538,5 +542,52 @@ class copenet_singleview(pl.LightningModule):
         shuffle_train.set_defaults(shuffle_train=True)
 
         return parser
+    
+    def get_depth_aware_loss(self, input_batch, pred_smpltrans, pred_rotmat, pred_output_cam):
+        transf_mat = torch.cat([pred_rotmat[:,:1].squeeze(1),
+                            pred_smpltrans.unsqueeze(2)],dim=2)
+
+        _,pred_joints_cam,_,_ = transform_smpl(transf_mat,
+                                            pred_output_cam.vertices.squeeze(1),
+                                            pred_output_cam.joints.squeeze(1))
+        
+        gt_joints_2d_cam = input_batch['smpl_joints_2d0'].squeeze(1)
+        intr = input_batch['intr0']
+
+        root_xyz_cam = depth_aware(pred_joints_cam, gt_joints_2d_cam, torch.tensor(CONSTANTS.FOCAL_LENGTH, device=device).float(), intr[:,:2,2])
+        
+        loss_depth_aware = self.mseloss(pred_smpltrans, root_xyz_cam).mean()
+        return loss_depth_aware
 
 
+def depth_aware(j3d, j2d, cam_f, cam_center):
+    batch_size = 30
+    joints_num = 22
+
+    f = torch.mean(cam_f[:2], dim=-1, keepdim=True)
+    
+    pose2d = j2d[:,:joints_num,:] - cam_center.reshape(batch_size, 1, 2).repeat(1, joints_num, 1)
+    pose2d = torch.cat((pose2d, torch.zeros((batch_size, joints_num, 1), device=device, requires_grad=False)), dim=-1)
+    org = torch.zeros((batch_size, joints_num, 3), device=device, requires_grad=False)
+    org[:,:,2] = torch.mean(cam_f[:2].reshape(1, 1, 2).repeat(batch_size, joints_num, 1), dim=-1)
+    OD = org - pose2d
+    OD_norm = torch.norm(OD, dim=-1)
+    CD = pose2d[:,0,:].reshape(batch_size, 1, 3).repeat(1, joints_num, 1) - pose2d
+    CD_norm = torch.norm(CD, dim=-1)
+    cos_alpha = torch.sum(OD * CD, dim=-1) / (OD_norm * CD_norm)
+
+    pose3d = j3d[:,:joints_num,:] - j3d[:,:1,:]
+    AB = torch.norm(pose3d, dim=-1)
+    z_rel = pose3d[:,:,2]
+    BE = z_rel * OD_norm / f
+    AE = BE * cos_alpha + torch.sqrt(BE ** 2 * (cos_alpha ** 2 - 1) + AB **2)
+    z_abs = AE / CD_norm * f
+    z_abs = z_abs[:, 1:]
+    z_abs = torch.sort(z_abs, dim=-1)[0]
+    z_abs_maxdiff = z_abs[:, -1] - z_abs[:, 0]
+
+    z_abs = torch.mean(z_abs, dim=-1, keepdim=True)
+    z_abs *= 0.05  # distance scaling
+    xy_abs = pose2d[:,0,:2] / f * z_abs.repeat(1, 2)
+    xyz_abs = torch.cat((xy_abs, z_abs), dim=-1)
+    return xyz_abs
