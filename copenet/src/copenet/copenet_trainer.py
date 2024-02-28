@@ -57,7 +57,7 @@ def main(args):
     trainer = Trainer.from_argparse_args(args,
                                             default_root_dir=exp_dir,
                                             gpus = gpu,
-                                            max_epochs=1,  # debug
+                                            max_epochs=6,  # debug
                                             resume_from_checkpoint=last_ckpt,
                                             checkpoint_callback=ckpt_callback,
                                             callbacks = [ckpt_callback],
