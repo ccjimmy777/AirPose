@@ -103,6 +103,9 @@ class copenet_singleview(pl.LightningModule):
         loss_regr_pose =  loss_rotmat.mean()
         
         loss_regul_betas = torch.mul(pred_betas,pred_betas).mean()
+
+        depth_aware_z, depth_aware_z_std = self.get_depth_aware(input_batch, pred_smpltrans, pred_rotmat, pred_output_cam)
+        loss_depth_aware = (self.mseloss(pred_smpltrans[:,2], depth_aware_z)/(depth_aware_z_std**2)).mean()
         
         # Compute total loss
         loss = self.hparams.trans_loss_weight * loss_regr_trans + \
@@ -111,7 +114,8 @@ class copenet_singleview(pl.LightningModule):
                 self.hparams.shape_loss_weight * loss_regr_shape + \
                 self.hparams.rootrot_loss_weight * loss_rootrot + \
                 self.hparams.pose_loss_weight * loss_regr_pose + \
-                self.hparams.beta_loss_weight * loss_regul_betas
+                self.hparams.beta_loss_weight * loss_regul_betas + \
+                10.0 * loss_depth_aware
 
         loss *= 60
 
@@ -122,7 +126,10 @@ class copenet_singleview(pl.LightningModule):
                   'loss_regr_shape': loss_regr_shape.detach().item(),
                   'loss_rootrot': loss_rootrot.detach().item(),
                   'loss_regr_pose': loss_regr_pose.detach().item(),
-                  'loss_regul_betas': loss_regul_betas.detach().item()}
+                  'loss_regul_betas': loss_regul_betas.detach().item(),
+                  'loss_depth_aware': loss_depth_aware.detach().item()}
+
+        # print(losses)
 
         return loss, losses
 
@@ -273,6 +280,7 @@ class copenet_singleview(pl.LightningModule):
                                 pred_betas,
                                 pred_output_cam,
                                 pred_joints_2d_cam)
+            # print(loss)
             # Pack output arguments for tensorboard logging
             output = {'pred_vertices_cam': pred_vertices_cam.detach(),
                         'pred_smpltrans': pred_smpltrans.detach(),
@@ -536,5 +544,109 @@ class copenet_singleview(pl.LightningModule):
         shuffle_train.set_defaults(shuffle_train=True)
 
         return parser
+    
+    def get_depth_aware(self, input_batch, pred_smpltrans, pred_rotmat, pred_output_cam):
+        with torch.no_grad():
+            transf_mat = torch.cat([pred_rotmat[:,:1].squeeze(1),
+                                pred_smpltrans.unsqueeze(2)],dim=2)
+
+            _,pred_joints_cam,_,_ = transform_smpl(transf_mat,
+                                                pred_output_cam.vertices.squeeze(1),
+                                                pred_output_cam.joints.squeeze(1))
+            
+            gt_joints_2d_cam = input_batch['smpl_joints_2d0'].squeeze(1)
+            intr = input_batch['intr0']
+
+            root_z_cam, root_z_cam_std = depth_aware(pred_joints_cam, gt_joints_2d_cam, torch.tensor(CONSTANTS.FOCAL_LENGTH, device=device).float(), intr[:,:2,2])
+            
+            # loss_depth_aware = self.mseloss(pred_smpltrans, root_xyz_cam).mean()
+        return root_z_cam, root_z_cam_std
+
+def slide_window_deambiguity(sorted_z_candicates, window_size):
+    min_range = torch.full(sorted_z_candicates.shape[:-1], float('inf'), device=device)  # 窗口内极差的最小值
+    min_avg = torch.full(sorted_z_candicates.shape[:-1], -1.0, device=device)
+    min_std = torch.full(sorted_z_candicates.shape[:-1], -1.0, device=device)
+    len = sorted_z_candicates.size(-1)
+
+    for i in range(len - window_size + 1):
+        cur_range = sorted_z_candicates[..., i + window_size - 1] - sorted_z_candicates[..., i]
+        
+        if min(cur_range) == float('inf'): 
+            break
+        
+        update_flag = cur_range < min_range
+        min_avg[update_flag] = torch.mean(sorted_z_candicates[..., i:i + window_size], dim=-1)[update_flag]
+        min_std[update_flag] =  torch.std(sorted_z_candicates[..., i:i + window_size], dim=-1)[update_flag]
+        min_range[update_flag] = cur_range[update_flag]
+
+    # min_range_std = torch.std
+
+    return min_avg, min_std, min_range
 
 
+def depth_aware(j3d, j2d, cam_f, cam_center):
+    batch_size = 30
+    joints_num = 22
+
+    f = torch.mean(cam_f[:2], dim=-1, keepdim=True)
+    
+    pose2d = j2d[:,:joints_num,:] - cam_center.reshape(batch_size, 1, 2).repeat(1, joints_num, 1)
+    pose2d = torch.cat((pose2d, torch.zeros((batch_size, joints_num, 1), device=device, requires_grad=False)), dim=-1)
+    org = torch.zeros((batch_size, joints_num, 3), device=device, requires_grad=False)
+    org[:,:,2] = torch.mean(cam_f[:2].reshape(1, 1, 2).repeat(batch_size, joints_num, 1), dim=-1)
+    OD = org - pose2d
+    OD_norm = torch.norm(OD, dim=-1)
+    CD = pose2d[:,0,:].reshape(batch_size, 1, 3).repeat(1, joints_num, 1) - pose2d
+    CD_norm = torch.norm(CD, dim=-1)
+    cos_alpha = torch.sum(OD * CD, dim=-1) / (OD_norm * CD_norm)
+    
+    pose3d = j3d[:,:joints_num,:] - j3d[:,:1,:]
+    z_rel = pose3d[:,:,2]
+    cos_alpha[z_rel > 0] *= -1
+
+    AB = torch.norm(pose3d, dim=-1)
+    
+    BE = z_rel * OD_norm / f
+    AB_proj_AE = BE ** 2 * (cos_alpha ** 2 - 1) + AB **2
+
+    # 虽然计算为负值，但应该接近于0
+    # 该情形对应关节AB接近与光轴平行
+    minus_mask = AB_proj_AE < 0
+    if minus_mask.sum().item() > 0:
+        # print('warning: AB_proj_AE < 0; minus_mask.sum().item() = {}'.format(minus_mask.sum().item()))
+        # print('负值定位为：{}'.format(torch.nonzero(minus_mask)))
+        # print('最大负值（绝对值最大）：{}'.format(torch.min(AB_proj_AE[minus_mask])))
+        AB_proj_AE[minus_mask] = 0
+    
+    AE = BE * cos_alpha + torch.sqrt(AB_proj_AE)
+    AE_ = BE * cos_alpha - torch.sqrt(AB_proj_AE)
+    z = AE / CD_norm * f; z = z[:, 1:]
+    z_ = AE_ / CD_norm * f; z_ = z_[:, 1:]
+
+    z_candicates = torch.full(AB.shape[:-1]+((AB.shape[-1]-1)*2,), float('inf'), device=device)
+    obtuse_flag = (cos_alpha <= 0)[:, 1:]
+    longer_flag = (AB >= BE)[:, 1:]
+    unique_flag = obtuse_flag | longer_flag
+    one_flag = torch.nonzero(unique_flag)
+    two_flag = torch.nonzero(~unique_flag)
+
+    one_flag_expand = one_flag.clone()
+    two_flag_expand = two_flag.clone()
+    one_flag_expand[:, -1] *= 2
+    two_flag_expand[:, -1] *= 2
+
+    z_candicates[one_flag_expand[:,0], one_flag_expand[:,1]] = z[one_flag[:,0], one_flag[:,1]]
+    z_candicates[two_flag_expand[:,0], two_flag_expand[:,1]] = z[two_flag[:,0], two_flag[:,1]]
+    two_flag_expand[:, -1] += 1
+    z_candicates[two_flag_expand[:,0], two_flag_expand[:,1]] = z_[two_flag[:,0], two_flag[:,1]]                
+
+    z_candicates = torch.sort(z_candicates, dim=-1)[0]
+    z_abs_mean, z_abs_std, _ = slide_window_deambiguity(z_candicates, joints_num - 1)
+
+    # z_abs_maxdiff = z_abs[:, -1] - z_abs[:, 0]
+
+    # z_abs = torch.mean(z_abs, dim=-1, keepdim=True)
+    # z_abs *= 0.05  # distance scaling
+    # xy_abs = pose2d[:,0,:2] / f * z_abs.repeat(1, 2)
+    # xyz_abs = torch.cat((xy_abs, z_abs), dim=-1)
+    return z_abs_mean, z_abs_std
