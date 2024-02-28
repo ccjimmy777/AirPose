@@ -49,7 +49,7 @@ def main(args):
     
     if os.path.exists(os.path.join(exp_dir,"checkpoints","last.ckpt")):
         print("pre trained checkpoint found... continuing from there")
-        last_ckpt = os.path.join(exp_dir,"last.ckpt")
+        last_ckpt = os.path.join(exp_dir,"checkpoints","last.ckpt")
     else:
         last_ckpt = args.resume_from_checkpoint
 
@@ -68,10 +68,10 @@ def main(args):
         pass
     except KeyboardInterrupt:
         import ipdb; ipdb.set_trace()
-        trainer.save_checkpoint(os.path.join(exp_dir, "last.ckpt"))
+        trainer.save_checkpoint(os.path.join(exp_dir, "checkpoints", "last.ckpt"))
 
     try:
-        trainer.save_checkpoint(os.path.join(exp_dir,"last.ckpt"))
+        trainer.save_checkpoint(os.path.join(exp_dir, "checkpoints", "last.ckpt"))
     except:
         pass
 
