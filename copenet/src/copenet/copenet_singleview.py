@@ -304,6 +304,8 @@ class copenet_singleview(pl.LightningModule):
         """
         
         output, losses, loss = self.fwd_pass_and_loss(batch,is_val=False, is_test=False)
+        
+        logs = {"train_loss": loss}
 
         with torch.no_grad():
         # logging
@@ -314,8 +316,10 @@ class copenet_singleview(pl.LightningModule):
                 for loss_name, val in losses.items():
                     self.logger.experiment.add_scalar(loss_name + '/train', val, self.global_step)
 
-        return {"loss" : loss}
+        return {"loss" : loss, "log" : logs}
     
+    def training_epoch_end(self, outputs):
+        pass
 
     def validation_step(self, batch, batch_idx):
         # OPTIONAL
