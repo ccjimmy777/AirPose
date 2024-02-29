@@ -321,7 +321,7 @@ class copenet_singleview(pl.LightningModule):
         with torch.no_grad():
             # logging
             for loss_name, _ in outputs[0]["losses"].items():
-                mean_val = torch.stack([x['losses'][loss_name] for x in outputs]).mean()
+                mean_val = torch.stack([torch.as_tensor(x['losses'][loss_name]) for x in outputs]).mean()
                 self.logger.experiment.add_scalar(loss_name + '/train', mean_val, self.current_epoch)
 
             # calculating average loss  
@@ -347,7 +347,7 @@ class copenet_singleview(pl.LightningModule):
     def validation_epoch_end(self, outputs):
         with torch.no_grad():
             for loss_name, _ in outputs[0]["val_losses"].items():
-                mean_val = torch.stack([x['val_losses'][loss_name] for x in outputs]).mean()
+                mean_val = torch.stack([torch.as_tensor(x['val_losses'][loss_name]) for x in outputs]).mean()
                 self.logger.experiment.add_scalar(loss_name + '/val', mean_val, self.current_epoch)
 
             # self.log("val_loss", np.mean([x["val_loss"].cpu().numpy() for x in outputs]))
