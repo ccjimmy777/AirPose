@@ -314,8 +314,21 @@ class copenet_singleview(pl.LightningModule):
                 for loss_name, val in losses.items():
                     self.logger.experiment.add_scalar(loss_name + '/train', val, self.global_step)
 
-        return {"loss" : loss}
+        return {'losses': losses, "loss" : loss}
     
+    def training_epoch_end(self, outputs):
+        #  the function is called after every epoch is completed
+        with torch.no_grad():
+            # logging
+            for loss_name, _ in outputs[0]["losses"].items():
+                mean_val = torch.stack([torch.as_tensor(x['losses'][loss_name]) for x in outputs]).mean()
+                self.logger.experiment.add_scalar(loss_name + '/train', mean_val, self.current_epoch)
+
+            # calculating average loss  
+            avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
+            self.logger.experiment.add_scalar("avg_loss" + '/train', avg_loss, self.current_epoch)
+        
+        return {"loss": avg_loss}
 
     def validation_step(self, batch, batch_idx):
         # OPTIONAL
@@ -332,15 +345,16 @@ class copenet_singleview(pl.LightningModule):
         return {'val_losses': losses,"val_loss":loss}
 
     def validation_epoch_end(self, outputs):
-        for loss_name, val in outputs[0]["val_losses"].items():
-            val_list = []
-            for x in outputs:
-                val_list.append(x["val_losses"][loss_name])
-            mean_val = np.mean(val_list)
-            self.logger.experiment.add_scalar(loss_name + '/val', mean_val, self.global_step)
+        with torch.no_grad():
+            for loss_name, _ in outputs[0]["val_losses"].items():
+                mean_val = torch.stack([torch.as_tensor(x['val_losses'][loss_name]) for x in outputs]).mean()
+                self.logger.experiment.add_scalar(loss_name + '/val', mean_val, self.current_epoch)
 
-        self.log("val_loss", np.mean([x["val_loss"].cpu().numpy() for x in outputs]))
-        return {"val_loss":np.mean([x["val_loss"].cpu().numpy() for x in outputs])}
+            # self.log("val_loss", np.mean([x["val_loss"].cpu().numpy() for x in outputs]))
+            avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+            self.logger.experiment.add_scalar("avg_loss" + '/val', avg_loss, self.current_epoch)
+
+        return {"val_loss": avg_loss}
 
     def configure_optimizers(self):
         # REQUIRED
@@ -368,7 +382,7 @@ class copenet_singleview(pl.LightningModule):
         return DataLoader(val_dset, batch_size=self.hparams.val_batch_size,
                             num_workers=self.hparams.num_workers,
                             pin_memory=self.hparams.pin_memory,
-                            shuffle=self.hparams.shuffle_train,
+                            shuffle=False,  # old: self.hparams.shuffle_train
                             drop_last=True)
 
     def summaries(self, input_batch,output, losses, is_test):

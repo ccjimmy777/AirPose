@@ -40,7 +40,7 @@ def main(args):
     model = copenet_model(hparams=args)
 
     # model checkpoint
-    ckpt_callback = ModelCheckpoint(monitor="val_loss",save_top_k=1, save_last=True)
+    ckpt_callback = ModelCheckpoint(monitor="val_loss",save_top_k=1, save_last=True, every_n_epochs=20)
 
     # create logger
     logger = TensorBoardLogger(args.log_dir, name=args.name, version=args.version)
@@ -57,9 +57,8 @@ def main(args):
     trainer = Trainer.from_argparse_args(args,
                                             default_root_dir=exp_dir,
                                             gpus = gpu,
-                                            max_epochs=6,  # debug
-                                            resume_from_checkpoint=last_ckpt,
-                                            checkpoint_callback=ckpt_callback,
+                                            max_epochs=176,  # old value: 176
+                                            resume_from_checkpoint=last_ckpt,  # old value: last_ckpt
                                             callbacks = [ckpt_callback],
                                             logger=logger)
     
