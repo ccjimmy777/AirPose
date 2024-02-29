@@ -17,7 +17,7 @@ tensorboard-plugin-wit==1.8.0
 tensorboardX==2.2
 torch==1.8.1
 torchgeometry==0.1.2
-torchmetrics==0.2.0
+torchmetrics==0.4.1
 torchvision==0.9.1
 tqdm==4.60.0
 transforms3d==0.3.1
