@@ -40,7 +40,7 @@ def main(args):
     model = copenet_model(hparams=args)
 
     # model checkpoint
-    ckpt_callback = ModelCheckpoint(monitor="val_loss",save_top_k=1, save_last=True)
+    ckpt_callback = ModelCheckpoint(monitor="val_loss",save_top_k=1, save_last=True, every_n_epochs=20)
 
     # create logger
     logger = TensorBoardLogger(args.log_dir, name=args.name, version=args.version)
