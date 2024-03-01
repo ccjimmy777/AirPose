@@ -322,7 +322,7 @@ class copenet_singleview(pl.LightningModule):
             # logging
             for loss_name, _ in outputs[0]["losses"].items():
                 mean_val = torch.stack([torch.as_tensor(x['losses'][loss_name]) for x in outputs]).mean()
-                self.logger.experiment.add_scalar(loss_name + '/train', mean_val, self.current_epoch)
+                self.logger.experiment.add_scalar('avg_' + loss_name + '/train', mean_val, self.current_epoch)
 
             # calculating average loss  
             avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
@@ -342,6 +342,9 @@ class copenet_singleview(pl.LightningModule):
                 # logging
                 self.logger.experiment.add_image('val_pred_shape_cam', val_summ_pred_image, self.global_step)
                 self.logger.experiment.add_image('val_input_images',val_summ_in_image, self.global_step)
+
+                for loss_name, val in losses.items():
+                    self.logger.experiment.add_scalar(loss_name + '/val', val, self.global_step)
         
         return {'val_losses': losses,"val_loss":loss}
 
@@ -349,7 +352,7 @@ class copenet_singleview(pl.LightningModule):
         with torch.no_grad():
             for loss_name, _ in outputs[0]["val_losses"].items():
                 mean_val = torch.stack([torch.as_tensor(x['val_losses'][loss_name]) for x in outputs]).mean()
-                self.logger.experiment.add_scalar(loss_name + '/val', mean_val, self.current_epoch)
+                self.logger.experiment.add_scalar('avg_' + loss_name + '/val', mean_val, self.current_epoch)
 
             # self.log("val_loss", np.mean([x["val_loss"].cpu().numpy() for x in outputs]))
             avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
