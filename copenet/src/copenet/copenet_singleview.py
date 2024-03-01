@@ -354,6 +354,7 @@ class copenet_singleview(pl.LightningModule):
             # self.log("val_loss", np.mean([x["val_loss"].cpu().numpy() for x in outputs]))
             avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
             self.logger.experiment.add_scalar("avg_loss" + '/val', avg_loss, self.current_epoch)
+            self.log("val_loss", avg_loss)
 
         return {"val_loss": avg_loss}
 
