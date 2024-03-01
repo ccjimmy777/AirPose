@@ -654,7 +654,7 @@ class copenet_twoview(pl.LightningModule):
         train.add_argument('--testdata', type=str, default="aerialpeople", help='test dataset')
         train.add_argument("--lr", type=float, default=5e-5, help="Learning rate")
         train.add_argument('--batch_size', type=int, default=90, help='Batch size')  # 30
-        train.add_argument('--val_batch_size', type=int, default=30, help='Validation data batch size')
+        train.add_argument('--val_batch_size', type=int, default=90, help='Validation data batch size')  # 30
         train.add_argument('--summary_steps', type=int, default=100, help='Summary saving frequency')  # 500
         train.add_argument('--val_summary_steps', type=float, default=50, help='validation summary frequency')
         train.add_argument('--checkpoint_steps', type=int, default=10000, help='Checkpoint saving frequency')
