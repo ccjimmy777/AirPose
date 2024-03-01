@@ -7,6 +7,9 @@ from copenet.copenet_twoview import copenet_twoview
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
+from datetime import datetime
+TIMESTAMP = "{0:%Y-%m-%dT%H-%M-%S/}".format(datetime.now())
+
 from config import device
 if device == "cuda":
     gpu = -1
@@ -46,6 +49,7 @@ def main(args):
     logger = TensorBoardLogger(args.log_dir, name=args.name, version=args.version)
 
     exp_dir = logger.log_dir
+    exp_dir = exp_dir + TIMESTAMP  # 额外添加时间戳做路径名
     
     if os.path.exists(os.path.join(exp_dir,"checkpoints","last.ckpt")):
         print("pre trained checkpoint found... continuing from there")
