@@ -653,10 +653,10 @@ class copenet_twoview(pl.LightningModule):
         train.add_argument('--log_dir', default='/is/ps3/nsaini/projects/copenet/airpose_logs', help='Directory to store logs')
         train.add_argument('--testdata', type=str, default="aerialpeople", help='test dataset')
         train.add_argument("--lr", type=float, default=5e-5, help="Learning rate")
-        train.add_argument('--batch_size', type=int, default=30, help='Batch size')  # 30
-        train.add_argument('--val_batch_size', type=int, default=30, help='Validation data batch size')  # 30
+        train.add_argument('--batch_size', type=int, default=128, help='Batch size')  # 30
+        train.add_argument('--val_batch_size', type=int, default=128, help='Validation data batch size')  # 30
         train.add_argument('--summary_steps', type=int, default=100, help='Summary saving frequency')  # 500
-        train.add_argument('--val_summary_steps', type=float, default=50, help='validation summary frequency')
+        train.add_argument('--val_summary_steps', type=float, default=10, help='validation summary frequency')  # 50
         train.add_argument('--checkpoint_steps', type=int, default=10000, help='Checkpoint saving frequency')
         train.add_argument('--img_res', type=int, default=224, help='Rescale bounding boxes to size [img_res, img_res] before feeding them in the network') 
         train.add_argument('--shape_loss_weight', default=50, type=float, help='Weight of per-vertex loss') 
