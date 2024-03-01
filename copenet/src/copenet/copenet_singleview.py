@@ -328,7 +328,8 @@ class copenet_singleview(pl.LightningModule):
             avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
             self.logger.experiment.add_scalar("avg_loss" + '/train', avg_loss, self.current_epoch)
         
-        return {"loss": avg_loss}
+        # `training_epoch_end` expects a return of None.
+        # return {"loss": avg_loss}
 
     def validation_step(self, batch, batch_idx):
         # OPTIONAL
