@@ -354,6 +354,7 @@ class copenet_singleview(pl.LightningModule):
             # self.log("val_loss", np.mean([x["val_loss"].cpu().numpy() for x in outputs]))
             avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
             self.logger.experiment.add_scalar("avg_loss" + '/val', avg_loss, self.current_epoch)
+            self.log("val_loss", avg_loss)
 
         return {"val_loss": avg_loss}
 
@@ -600,7 +601,7 @@ def slide_window_deambiguity(sorted_z_candicates, window_size):
 
 
 def depth_aware(j3d, j2d, cam_f, cam_center):
-    batch_size = 30
+    batch_size = j3d.shape[0]
     joints_num = 22
 
     f = torch.mean(cam_f[:2], dim=-1, keepdim=True)
